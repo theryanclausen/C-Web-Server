@@ -53,14 +53,25 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     const int max_response_size = 262144;
     char response[max_response_size];
 
+    time_t t = time(NULL);
     // Build HTTP response and store it in response
 
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    int response_length = snprintf(response, max_response_size,
+        "%s\n"
+        "Date: %s"
+        "Connection: close\n"
+        "Content-length: %d\n"
+        "Content-type: %s\n"
+        "\n",
+        header, asctime(gmtime(&t)), content_length, content_type
+    );
 
+    memcpy(response + response_length, body, content_length);
     // Send it all!
-    int rv = send(fd, response, response_length, 0);
+    int rv = send(fd, response, response_length + content_length, 0);
 
     if (rv < 0) {
         perror("send");
@@ -77,7 +88,10 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
+    char rando_num[8];
+    int random = (rand() % 20) + 1;
+
+    sprintf(rando_num, "%d", random);
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
@@ -87,6 +101,8 @@ void get_d20(int fd)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", rando_num, strlen(rando_num));
+
 }
 
 /**
@@ -154,7 +170,7 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
-
+    resp_404(fd);
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
