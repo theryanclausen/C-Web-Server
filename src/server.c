@@ -187,7 +187,9 @@ void handle_http_request(int fd, struct cache *cache)
 
     // If GET, handle the get endpoints
     if(strcmp(request_type, "GET") == 0){
-
+        if (strcmp(request_path, "/d20") == 0){
+            get_d20(fd);
+        }
         get_file(fd, cache, request_path);
     }
 
