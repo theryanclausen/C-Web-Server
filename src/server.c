@@ -92,15 +92,8 @@ void get_d20(int fd)
     int random = (rand() % 20) + 1;
 
     sprintf(rando_num, "%d", random);
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
 
     // Use send_response() to send it back as text/plain data
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
     send_response(fd, "HTTP/1.1 200 OK", "text/plain", rando_num, strlen(rando_num));
 
 }
@@ -136,9 +129,20 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    char filepath[4096];
+    struct file_data *filedata;
+    
+    snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
+    filedata = file_load(filepath);
+
+    if (filedata == NULL){
+        resp_404(fd);
+        return;
+    }
+
+    char *mime_type = mime_type_get(filepath);
+    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+    file_free(filedata);
 }
 
 /**
@@ -161,6 +165,8 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+    char request_type[8];
+    char request_path[1024];
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -170,14 +176,20 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
-    resp_404(fd);
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    (void)cache;
+
+    sscanf(request, "%s %s",request_type, request_path);
+
+    printf("REQUEST: %s %s\n", request_type, request_path);
+
 
     // Read the three components of the first request line
 
     // If GET, handle the get endpoints
+    if(strcmp(request_type, "GET") == 0){
+
+        get_file(fd, cache, request_path);
+    }
 
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
