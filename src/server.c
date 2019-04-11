@@ -53,14 +53,22 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     const int max_response_size = 262144;
     char response[max_response_size];
 
+    time_t t = time(NULL);
     // Build HTTP response and store it in response
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    int response_length = snprintf(response, max_response_size,
+        "%s\n"
+        "Date: %s"
+        "Connection: close\n"
+        "Content-length: %d\n"
+        "Content-type: %s\n"
+        "\n",
+        header, asctime(gmtime(&t)), content_length, content_type
+    );
 
+    memcpy(response + response_length, body, content_length);
     // Send it all!
-    int rv = send(fd, response, response_length, 0);
+    int rv = send(fd, response, response_length + content_length, 0);
 
     if (rv < 0) {
         perror("send");
@@ -70,22 +78,21 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 }
 
 
+
 /**
  * Send a /d20 endpoint response
  */
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    char rando_num[8];
+    int random = (rand() % 20) + 1;
+
+    sprintf(rando_num, "%d", random);
 
     // Use send_response() to send it back as text/plain data
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", rando_num, strlen(rando_num));
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
 }
 
 /**
@@ -119,9 +126,32 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    char filepath[4096];
+    struct file_data *filedata;
+
+    
+    snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
+    
+    struct cache_entry *found_entry = cache_get(cache, request_path);
+    if (found_entry != NULL)
+    {
+        send_response(fd, "HTTP/1.1 200 OK", found_entry->content_type,found_entry->content ,found_entry->content_length );
+        return;
+    }
+
+    filedata = file_load(filepath);
+
+    if (filedata == NULL)
+    {
+        resp_404(fd);
+        return;
+    }
+
+    char *mime_type = mime_type_get(filepath);
+
+    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+    file_free(filedata);
 }
 
 /**
@@ -130,12 +160,12 @@ void get_file(int fd, struct cache *cache, char *request_path)
  * "Newlines" in HTTP can be \r\n (carriage return followed by newline) or \n
  * (newline) or \r (carriage return).
  */
-char *find_start_of_body(char *header)
-{
-    ///////////////////
-    // IMPLEMENT ME! // (Stretch)
-    ///////////////////
-}
+// char *find_start_of_body(char *header)
+// {
+//     ///////////////////
+//     // IMPLEMENT ME! // (Stretch)
+//     ///////////////////
+// }
 
 /**
  * Handle HTTP request and send response
@@ -144,6 +174,8 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+    char request_type[8];
+    char request_path[1024];
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -153,14 +185,26 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
+    sscanf(request, "%s %s",request_type, request_path);
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    printf("REQUEST: %s %s\n", request_type, request_path);
+
 
     // Read the three components of the first request line
 
     // If GET, handle the get endpoints
+    if(strcmp(request_type, "GET") == 0)
+    {
+        if (strcmp(request_path, "/d20") == 0)
+        {
+            get_d20(fd);
+        }
+        if (strcmp(request_path, "/") == 0)
+        {
+            get_file(fd, cache, "/index.html");
+        }
+        get_file(fd, cache, request_path);
+    }
 
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
