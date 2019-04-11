@@ -56,9 +56,6 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     time_t t = time(NULL);
     // Build HTTP response and store it in response
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
     int response_length = snprintf(response, max_response_size,
         "%s\n"
         "Date: %s"
@@ -135,16 +132,25 @@ void get_file(int fd, struct cache *cache, char *request_path)
     
     snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
     
+    struct cache_entry *found_entry = cache_get(cache, request_path);
+    if (found_entry != NULL)
+    {
+        send_response(fd, "HTTP/1.1 200 OK", found_entry->content_type,found_entry->content ,found_entry->content_length );
+        return;
+    }
 
     filedata = file_load(filepath);
 
-    if (filedata == NULL){
+    if (filedata == NULL)
+    {
         resp_404(fd);
         return;
     }
 
     char *mime_type = mime_type_get(filepath);
+
     send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
     file_free(filedata);
 }
 
@@ -154,12 +160,12 @@ void get_file(int fd, struct cache *cache, char *request_path)
  * "Newlines" in HTTP can be \r\n (carriage return followed by newline) or \n
  * (newline) or \r (carriage return).
  */
-char *find_start_of_body(char *header)
-{
-    ///////////////////
-    // IMPLEMENT ME! // (Stretch)
-    ///////////////////
-}
+// char *find_start_of_body(char *header)
+// {
+//     ///////////////////
+//     // IMPLEMENT ME! // (Stretch)
+//     ///////////////////
+// }
 
 /**
  * Handle HTTP request and send response
@@ -178,8 +184,6 @@ void handle_http_request(int fd, struct cache *cache)
         perror("recv");
         return;
     }
-
-    (void)cache;
 
     sscanf(request, "%s %s",request_type, request_path);
 
