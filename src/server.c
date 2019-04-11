@@ -131,8 +131,11 @@ void get_file(int fd, struct cache *cache, char *request_path)
 {
     char filepath[4096];
     struct file_data *filedata;
+
     
     snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
+    
+
     filedata = file_load(filepath);
 
     if (filedata == NULL){
@@ -186,9 +189,15 @@ void handle_http_request(int fd, struct cache *cache)
     // Read the three components of the first request line
 
     // If GET, handle the get endpoints
-    if(strcmp(request_type, "GET") == 0){
-        if (strcmp(request_path, "/d20") == 0){
+    if(strcmp(request_type, "GET") == 0)
+    {
+        if (strcmp(request_path, "/d20") == 0)
+        {
             get_d20(fd);
+        }
+        if (strcmp(request_path, "/") == 0)
+        {
+            get_file(fd, cache, "/index.html");
         }
         get_file(fd, cache, request_path);
     }
