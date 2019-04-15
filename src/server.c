@@ -61,7 +61,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
         "%s\n"
         "Date: %s"
         "Connection: close \n"
-        "Content-length: %s \n"
+        "Content-length: %d \n"
         "Content-type: %s\n"
         "\n",
         header, asctime(gmtime(&t)), content_length, content_type
@@ -69,7 +69,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 
     memcpy(response + response_length, body, content_length);
     // Send it all!
-    int rv = send(fd, response, response_length, 0);
+    int rv = send(fd, response, response_length + content_length, 0);
 
     if (rv < 0) {
         perror("send");
