@@ -53,13 +53,21 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 {
     const int max_response_size = 262144;
     char response[max_response_size];
-
+    int response_length;
     // Build HTTP response and store it in response
+    time_t t = time(NULL);
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    response_length = snprintf(response, max_response_size,
+        "%s\n"
+        "Date: %s"
+        "Connection: close \n"
+        "Content-length: %s \n"
+        "Content-type: %s\n"
+        "\n",
+        header, asctime(gmtime(&t)), content_length, content_type
+    );
 
+    memcpy(response + response_length, body, content_length);
     // Send it all!
     int rv = send(fd, response, response_length, 0);
 
@@ -143,9 +151,11 @@ char *find_start_of_body(char *header)
  */
 void handle_http_request(int fd, struct cache *cache)
 {
+    printf("%d\n", fd);
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
-
+    char request_type[8];
+    char request_path[1024];
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
 
@@ -153,19 +163,20 @@ void handle_http_request(int fd, struct cache *cache)
         perror("recv");
         return;
     }
-
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    (void)cache;
 
     // Read the three components of the first request line
-
+    sscanf(request, "%s %s", request_type, request_path);
+    printf(request, "Request: %s %s\n", request_type, request_path);
+    resp_404(fd);
     // If GET, handle the get endpoints
+    
 
+    
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
-
+        
+    
 
     // (Stretch) If POST, handle the post request
 }
