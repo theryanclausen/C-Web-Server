@@ -125,12 +125,18 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    (void)cache;
     char filepath[4096];
     struct file_data *fdata;
     if (strcmp(request_path, "/") == 0)
     {
         request_path = "/index.html";
+    }
+
+    struct cache_entry *found = cache_get(cache, request_path);
+    if (found != NULL)
+    {
+        send_response(fd, "HTTP/1.1 200 OK", found->content_type, found->content, found->content_length);
+        return;
     }
 
     snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
@@ -142,6 +148,7 @@ void get_file(int fd, struct cache *cache, char *request_path)
     }
 
     char *mt = mime_type_get(filepath);
+    cache_put(cache, request_path, mt, fdata->data, fdata->size);
     send_response(fd, "HTTP/1.1 200 OK", mt, fdata->data, fdata->size);
     file_free(fdata);
 }
